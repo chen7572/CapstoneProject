@@ -32,6 +32,7 @@ Potential data for analysis:
 + Identify the most mentioned words in the posts, and chart the frequencies of the "Harvey' and "Irma" of each day. 
 
 Update: it appears that users can only download tweets during the past 7 days for free. So downloading the historical data seems like a challenge. An online twitter dataset for Hurrican Harvey is available:  https://digital.library.unt.edu/ark:/67531/metadc993940/
+
 And can use this dataset as a start. 
 
 
