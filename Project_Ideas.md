@@ -38,7 +38,7 @@ And can use this dataset as a start.
 
 #### 3. Impact of historical earthquakes
 
-Issue: are we doing better in reducing damages and fatalities in large earthquakes? 
+Issue: are we doing better at reducing damages and fatalities in large earthquakes? 
 
 Questions: 
 + Is the total loss at large earthquakes decreasing over the years? 

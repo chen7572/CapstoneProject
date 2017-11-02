@@ -1,0 +1,96 @@
+---
+title: "Capstone Project Proposal"
+author: "Chen Chen"
+date: "11/2/2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Are we doing better at reducing the total loss in large earthquakes? 
+
+##<span style="color:blue">*Introduction*
+
+Earthquakes, one of the most damaging natural disasters, take away hundreds to thousands of lives and houses worldwide each year. While it is difficult to predict when the next earthquake will hit, the earthquake prone areas can take actions to be more prepared if such disasters happen. Through this project, I want to analyze earthquakes for the past 50 years to investigate the correlation between large earthquake fatality/damages and a country's economic status, specifically answering the followng questions:
+
+1) if we are doing better at reducing damages and fatality; 
+
+2) which countries have managed to decrease damages/fatality over the years; 
+
+3) is there a correlation between a country's economic status and the total deaths/damages; 
+
+4) is there a correlation between a country's population and the total deaths/damages; 
+
+5) what can we learn from the countries that are able to decrease the total loss at large earthquakes.
+
+
+Learning from a devastating earthquake is by no means limited to the above aspects. Earthquake engineers and scientists can gather first-hand information on buidling structures and urban planning by visiting those earthquakes affected areas, which will be very useful for future prevention purposes. This study aims to provide information on the correlation between several variables and the earthquake damages through data analysis.
+
+
+##<span style="color:blue">*Data Collection*
+Many resources are available online for earthquake data. For instance, the United State Geological Survey updates their earthquake statistics each year, from which we can get an overview of the estimated deaths and the number of large earthquakes for each year ([USGS earthquake statistics](https://earthquake.usgs.gov/earthquakes/browse/stats.php)). 
+
+
+NOAA has a [significant earthquake database](https://www.ngdc.noaa.gov/nndc/struts/form?t=101650&s=1&d=1), which contains earthquakes from 2150 B.C. to the present that meet at least one of the following criteria: Moderate damage (approximately $1 million or more), 10 or more deaths, Magnitude 7.5 or greater, [Modified Mercalli Intensity](https://earthquake.usgs.gov/learn/topics/mercalli.php) X or greater, or the earthquake generated a tsunami. 
+
+
+I downloaded the earthquakes between 1967 to 2017 from this database, and the data format is .tsv file. Take a quick glance of the data in R: 
+
+```{r}
+eq_data <- read.table(file = 'results.tsv', sep = '\t', header = TRUE, stringsAsFactors = F)
+head(eq_data,2)
+```
+
+We only need a few columns for this analysis, so the data frame needs to be cleaned up in the analysis. 
+
+
+We also need data about a country's economic status. I found [GDP](http://databank.worldbank.org/data/reports.aspx?source=2&series=NY.GDP.MKTP.CD&country=#) and [population](http://databank.worldbank.org/data/reports.aspx?source=2&series=SP.POP.TOTL&country=) data of all the countries for the past 57 years from the World Bank database. 
+
+
+Take a look at the GDP data and we notice that we will need to clean up the header and replace empty cells with NA: 
+```{r}
+world_gdp <- read.csv(file='world_gdp_Data.csv',sep=",",header=T,stringsAsFactors = F)
+head(world_gdp,2)
+```
+
+I will also need to clean up the population data in a similar fashion. 
+
+
+##<span style="color:blue">*Proposed Analyses*
+###Data Wrangling using dplyr package in R
+As mentioned in the data in the above section, I will create a subset data frame from the significant earthquakes data frame with only the columns needed in the analysis. I also need to replace empty cells in the GDP and population data with NA and clean up the header information. 
+
+After these three data frames are cleaned up, I plan to add GDP and population data as columns of variables to the earthquake data frame, so all the data are kept in one place. 
+
+
+###Preliminary inspection of the data
+I plan to make the following plots:
+
+* total deaths by year for the past 50 years;
+
+* total deaths by country;
+
+* total deaths by earthquake magnitude;
+
+* total deaths VS GDP;
+
+* total deaths VS population.
+
+
+A series of plots with total damages will also be made. 
+
+
+###Futher analysis based on the results of the preliminary findings
+Depending on what correlation I can find from the previous step, I will design additional analyses or plots. 
+
+
+##<span style="color:blue">*Recommendations based on my findings*
+If I find certain countries are doing better than the others, I can do some literature research to find what actions these countries have taken. And these actions can be applied in other countries too. 
+
+
+Additional aspects to think from the findings include: how they can be utilized by insurance companies, urban planning department, or the UN country assistance development frameworks (UNDAFs).
+
