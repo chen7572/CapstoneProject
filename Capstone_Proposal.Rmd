@@ -1,37 +1,40 @@
 ---
-title: "Capstone Project Proposal"
+title: |
+       | \LARGE{Capstone Project Proposal}
+       | \vspace{0.5cm} \huge{Are we doing better at reducing the total loss in large earthquakes?}
+       
 author: "Chen Chen"
 date: "11/2/2017"
 output:
   pdf_document: default
   html_document: default
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Are we doing better at reducing the total loss in large earthquakes? 
 
-##<span style="color:blue">*Introduction*
+##*\textcolor{blue}{Introduction}*
 
-Earthquakes, one of the most damaging natural disasters, take away hundreds to thousands of lives and houses worldwide each year. While it is difficult to predict when the next earthquake will hit, the earthquake prone areas can take actions to be more prepared if such disasters happen. Through this project, I want to analyze earthquakes for the past 50 years to investigate the correlation between large earthquake fatality/damages and a country's economic status, specifically answering the followng questions:
+Earthquakes, one of the most damaging natural disasters, take away hundreds to thousands of lives and houses worldwide each year. While it is difficult to predict when the next earthquake will hit, the earthquake prone areas can take actions to be more prepared if such disasters happen. Through this project, I want to analyze earthquakes for the past 50 years to investigate the correlation between large earthquake fatality/damages and a country's economic situation, specifically answering the followng questions:
 
-1) if we are doing better at reducing damages and fatality; 
+1) overall, are we doing better at reducing damages and fatality; 
 
 2) which countries have managed to decrease damages/fatality over the years; 
 
-3) is there a correlation between a country's economic status and the total deaths/damages; 
+3) is there a correlation between a country's GDP and the total deaths/damages; 
 
 4) is there a correlation between a country's population and the total deaths/damages; 
 
 5) what can we learn from the countries that are able to decrease the total loss at large earthquakes.
 
 
-Learning from a devastating earthquake is by no means limited to the above aspects. Earthquake engineers and scientists can gather first-hand information on buidling structures and urban planning by visiting those earthquakes affected areas, which will be very useful for future prevention purposes. This study aims to provide information on the correlation between several variables and the earthquake damages through data analysis.
+Learning from a devastating earthquake is by no means limited to the above aspects. Earthquake engineers and scientists can gather first-hand information on building structures and urban planning flaws by visiting those earthquakes affected areas, which will be very useful for future prevention purposes. This study aims to look into the correlation between several variables and the earthquake damages through data analysis, and the results will be useful in several aspects. For example, insurance companies can use this information to help determine premium, and a country can also refer to this type of information when budgeting natural disaster funding. 
 
 
-##<span style="color:blue">*Data Collection*
+##*\textcolor{blue}{Data Collection}*
 Many resources are available online for earthquake data. For instance, the United State Geological Survey updates their earthquake statistics each year, from which we can get an overview of the estimated deaths and the number of large earthquakes for each year ([USGS earthquake statistics](https://earthquake.usgs.gov/earthquakes/browse/stats.php)). 
 
 
@@ -60,7 +63,7 @@ head(world_gdp,2)
 I will also need to clean up the population data in a similar fashion. 
 
 
-##<span style="color:blue">*Proposed Analyses*
+##*\textcolor{blue}{Proposed Analyses}*
 ###Data Wrangling using dplyr package in R
 As mentioned in the data in the above section, I will create a subset data frame from the significant earthquakes data frame with only the columns needed in the analysis. I also need to replace empty cells in the GDP and population data with NA and clean up the header information. 
 
@@ -87,8 +90,7 @@ A series of plots with total damages will also be made.
 ###Futher analysis based on the results of the preliminary findings
 Depending on what correlation I can find from the previous step, I will design additional analyses or plots. 
 
-
-##<span style="color:blue">*Recommendations based on my findings*
+##*\textcolor{blue}{Recommendations based on my findings}*
 If I find certain countries are doing better than the others, I can do some literature research to find what actions these countries have taken. And these actions can be applied in other countries too. 
 
 
