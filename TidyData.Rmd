@@ -1,0 +1,91 @@
+---
+title: "Data Tidy Notes"
+author: "Chen Chen"
+date: "11/16/2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+To tidy the data and inspect the missing data, I used three libraries loaded: Amelia, tidyr, and dplyr. 
+
+
+```{r,message=FALSE,warning=FALSE}
+library(Amelia)
+library(tidyr)
+library(dplyr)
+```
+
+I have three data files to clean up for this analysis. The first one is the significant earthquake database from NOAA. And the other two are the population data and gdp data for the past 57 years, downloaded from the worldbank. 
+
+I first loaded the earthquake data and plotted the missing values : 
+```{r}
+eq_data <- read.table(file = 'results.tsv', sep = '\t', 
+                      header = TRUE, stringsAsFactors = F)
+
+missmap(eq_data,x.cex=0.5,y.cex=0.5,rank.order = F)
+```
+
+Looking at the missing field map, I noticed that the data is missing hour, minute and second for a few earthquakes. I converted them to 0, in order to generate a date variable later in the data frame. Then I re-organized the data frame according to the country
+
+```{r}
+eq_data[c("HOUR","MINUTE","SECOND")][is.na(eq_data[c("HOUR","MINUTE","SECOND")])] <- 0 
+
+# Convert Date from character to date in R
+eq_date <- eq_data %>% unite(DATE,YEAR:DAY,sep="-",remove=T) 
+eq_time <- eq_date %>% unite(E_TIME,HOUR:SECOND,sep=":",remove=T)
+eq_origin <- eq_time %>% unite(ORIGIN,DATE:E_TIME,sep=" ",remove=T) 
+eq_origin$ORIGIN <- as.POSIXct(eq_origin$ORIGIN,tz="GMT")
+
+# reorder the columns and arrange the data frame by country 
+country_eq <- eq_origin %>% 
+  select(COUNTRY:LONGITUDE,FOCAL_DEPTH,REGION_CODE,ORIGIN,everything()) %>% 
+  arrange(COUNTRY)
+
+head(country_eq,3)
+```
+
+Next, I cleaned the world GDP data. 
+```{r}
+world_gdp <- read.csv(file='world_gdp_Data.csv',sep=",",
+                     col.names=c("Series.Name","Series.Code",
+                     "Country.Name","Country.Code",1960:2016),
+                     stringsAsFactors = F,check.names = F)
+# plot the missing values
+missmap(world_gdp,x.cex=0.5,y.cex=0.5,rank.order=F)
+
+# remove last 5 rows and gather the data 
+tail(world_gdp,6)
+world_gdp_data <- head(world_gdp,-5)
+gdp_tidy <- world_gdp_data %>% gather("Year","Value",5:61)
+
+# rearrange the data by country
+gdp_order <- gdp_tidy %>% select(Country.Name,Country.Code,everything()) %>% 
+  arrange(Country.Name)
+
+# spread the GDP columns into 
+gdp_spread <- gdp_order %>% unite(temp,Series.Name,Series.Code,sep="|") %>% 
+  spread(key=temp,value = Value)
+```
+
+Then I cleaned the population data similarly. 
+```{r}
+popul <- read.csv(file="world_population_Data.csv",sep=",",
+                       col.names=c("Series.Name","Series.Code",
+                                   "Country.Name","Country.Code",1960:2016),
+                  stringsAsFactors = F,check.names = F)
+
+missmap(popul,x.cex=0.5,y.cex=0.5,rank.order=F)
+world_popu <- head(popul,-5)
+popu_tidy <- world_popu %>% gather("Year","Population",5:61)
+popu_order <- popu_tidy %>% arrange(Country.Name) %>% 
+  select(Country.Name,Country.Code,Year,everything())
+
+# join the population and gdp data frames together
+gdp_population <- left_join(gdp_spread,popu_order)
+colnames(gdp_population)
+head(gdp_population)
+```
+
+
+
