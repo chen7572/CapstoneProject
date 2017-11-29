@@ -2,7 +2,9 @@
 title: "Data Analysis"
 author: "Chen Chen"
 date: "11/29/2017"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 After loading the earthquake data, the population data, and the GDP data into R studio, I plotted the following plots: 
@@ -10,6 +12,7 @@ After loading the earthquake data, the population data, and the GDP data into R 
 ## Correlation of the earthquake data 
 
 Total deaths and deaths are strongly correlated. The death count and the death description are strongly correlated as well. 
+
 
 ```{r, message=FALSE, warning = FALSE, echo=FALSE}
 library(Amelia)
@@ -83,8 +86,8 @@ popu_order <- popu_tidy %>% arrange(Country.Name) %>%
 # Add in population as a column. 
 gdp_population <- left_join(gdp_spread,popu_order)
 
-
 ```
+
 
 ```{r, message = FALSE, warning = FALSE, echo=FALSE}
 # Perform data analysis 
@@ -102,15 +105,19 @@ colnames(df_eq_gdp)[50] <- "GDP_per_capita_2010USD"
 colnames(df_eq_gdp)[51] <- "GDP_per_capita_currentUSD"
 ```
 
+
 \newpage
 
 ## Distrubtion of total deaths
+
 ```{r, message=FALSE,warning=FALSE}
 ggplot(df_eq_gdp,aes(x=TOTAL_DEATHS)) +
   geom_histogram(bins = 50,color="black",fill = "white")
 ```
 
+
 \newpage
+
 ## Total deaths VS Earthquake Magnitude 
 As expected, more people died in large earthquakes.
 ```{r, message = FALSE,warning = FALSE}
@@ -119,6 +126,7 @@ ggplot(country_eq,aes(x=EQ_PRIMARY, y = log(TOTAL_DEATHS))) +
 ```
 
 \newpage
+
 ## Total deaths VS Focal Depth of earthquakes 
 There is a weak correlation between focal depth and total deaths. More deaths are correlated with shallower earthquakes. 
 ```{r, message = FALSE, warning = FALSE}
@@ -128,10 +136,12 @@ ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DEATHS),color = EQ_PRIMARY)) 
   scale_x_continuous(limits = c(0, 300))
 ```
 
+
 \newpage
 
 ## Total damage VS Focal Depth of earthquakes
 There is no obvious correlation between focal depth and total damages. 
+
 ```{r, message = FALSE, warning = FALSE}
 ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DAMAGE_MILLIONS_DOLLARS),
                       color = EQ_PRIMARY)) +
@@ -160,19 +170,23 @@ ggplot(country_eq, aes(x= format(DATE,"%Y"), y = log(TOTAL_DEATHS))) +
   scale_x_discrete("Year")
 ```
 
+
 \newpage
 
 ## Total deaths VS GDP per capita 
 The data seems to show that higher death rates are associated with lower GDP per capita. 
+
 ```{r,message = FALSE, warning = FALSE}
 ggplot(df_eq_gdp,aes(x = as.numeric(GDP_per_capita_currentUSD),y=log(TOTAL_DEATHS))) +
   geom_jitter() +
   scale_x_continuous("GDP per capita current $US",limits = c(0,60000))
 ```
 
+
 \newpage
 
 ## Total deaths VS Country population 
+
 ```{r,message = FALSE, warning = FALSE}
 ggplot(df_eq_gdp,aes(x = as.numeric(Population),y=log(TOTAL_DEATHS))) +
   geom_jitter() +
