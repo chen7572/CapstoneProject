@@ -1,9 +1,19 @@
+---
+title: "Data Analysis"
+author: "Chen Chen"
+date: "11/29/2017"
+output: pdf_document
+---
+
+After loading the earthquake data, the population data, and the GDP data into R studio, I plotted the following plots: 
+
+### Correlation of the earthquake data 
+
+```{r, message=FALSE, warning = FALSE, echo=FALSE}
 library(Amelia)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-
-# Tidy the earthquake data 
 eq_data <- read.table(file = 'results.tsv', sep = '\t', 
                       header = TRUE, stringsAsFactors = F)
 
@@ -19,7 +29,7 @@ axis( 2, at=seq(0,1,length.out=ncol( cell_cor ) ),
       labels= colnames( cell_cor ), las= 2)
 
 # Plot the missing field data using missmap
-missmap(eq_data,x.cex=0.5,y.cex=0.5,rank.order = F)
+#missmap(eq_data,x.cex=0.5,y.cex=0.5,rank.order = F)
 
 # convert NA values in HOUR, MINUTE,SECOND to 0 
 # eq_data[c("HOUR","MINUTE","SECOND")][is.na(eq_data[c("HOUR","MINUTE","SECOND")])] <- 0 
@@ -43,7 +53,7 @@ world_gdp <- read.csv(file='world_gdp_Data.csv',sep=",",
                      "Country.Name","Country.Code",1960:2016),
                      stringsAsFactors = F,check.names = F)
                       
-missmap(world_gdp,x.cex=0.5,y.cex=0.5,rank.order=F)
+#missmap(world_gdp,x.cex=0.5,y.cex=0.5,rank.order=F)
 
 world_gdp_data <- head(world_gdp,-5)
 gdp_tidy <- world_gdp_data %>% gather("Year","Value",5:61)
@@ -62,7 +72,7 @@ popul <- read.csv(file="world_population_Data.csv",sep=",",
                                    "Country.Name","Country.Code",1960:2016),
                   stringsAsFactors = F,check.names = F)
 
-missmap(popul,x.cex=0.5,y.cex=0.5,rank.order=F)
+#missmap(popul,x.cex=0.5,y.cex=0.5,rank.order=F)
 world_popu <- head(popul,-5)
 popu_tidy <- world_popu %>% gather("Year","Population",5:61)
 popu_order <- popu_tidy %>% arrange(Country.Name) %>% 
@@ -70,35 +80,13 @@ popu_order <- popu_tidy %>% arrange(Country.Name) %>%
 
 # Add in population as a column. 
 gdp_population <- left_join(gdp_spread,popu_order)
-colnames(gdp_population)
 
+
+```
+
+```{r, message = FALSE, warning = FALSE}
 # Perform data analysis 
 gdp_population[gdp_population == ".."] = NA
-
-ggplot(country_eq,aes(x=EQ_PRIMARY, y = log(TOTAL_DEATHS))) +
-  geom_point()
-
-#cbPalette <- c("#999999", "#E69F00", "#56B4E9", 
-#               "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
-ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DEATHS),color = EQ_PRIMARY)) +
-  geom_jitter() +
-  scale_color_gradientn(colors=rainbow(4)) +
-  scale_x_continuous(limits = c(0, 300))
-
-ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DAMAGE_MILLIONS_DOLLARS),
-                      color = EQ_PRIMARY)) +
-  geom_jitter() +
-  scale_color_gradientn(colors=rainbow(4)) +
-  scale_x_continuous(limits = c(0, 100))
-
-ggplot(country_eq,aes(x=log(TOTAL_DAMAGE_MILLIONS_DOLLARS),y=log(TOTAL_DEATHS))) + 
-  geom_point()
-
-ggplot(country_eq, aes(x= format(DATE,"%Y"), y = log(TOTAL_DEATHS))) +
-  stat_summary(fun.y=sum,geom="bar") + 
-  theme(axis.text.x = element_text(angle = 90)) +
-  scale_x_discrete("Year")
 
 # Need to make sure the names are consistent 
 colnames(gdp_population)[1] <- "COUNTRY"
@@ -106,25 +94,66 @@ gdp_population$COUNTRY <- toupper(gdp_population$COUNTRY)
 country_eq$Year <- format(country_eq$DATE,"%Y")
 df_eq_gdp <- left_join(country_eq,gdp_population)
 
-# Need to clean up some of the inconsistent names       
-a <- unique(gdp_population$COUNTRY)
-b <- unique(country_eq$COUNTRY)
-c <- setdiff(b,a)
-
 colnames(df_eq_gdp)[48] <- "GDP_constant2010USD"
 colnames(df_eq_gdp)[49] <- "GDP_currentUSD"
 colnames(df_eq_gdp)[50] <- "GDP_per_capita_2010USD"
 colnames(df_eq_gdp)[51] <- "GDP_per_capita_currentUSD"
+```
 
+### Distrubtion of total deaths
+```{r, message=FALSE,warning=FALSE}
+ggplot(df_eq_gdp,aes(x=TOTAL_DEATHS)) +
+  geom_histogram(bins = 50,color="black",fill = "white")
+```
+
+### Total deaths VS Earthquake Magnitude 
+```{r, message = FALSE,warning = FALSE}
+ggplot(country_eq,aes(x=EQ_PRIMARY, y = log(TOTAL_DEATHS))) +
+  geom_point()
+```
+
+### Total deaths VS Focal Depth of earthquakes 
+```{r, message = FALSE, warning = FALSE}
+ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DEATHS),color = EQ_PRIMARY)) +
+  geom_jitter() +
+  scale_color_gradientn(colors=rainbow(4)) +
+  scale_x_continuous(limits = c(0, 300))
+```
+
+### Total damage VS Focal Depth of earthquakes
+```{r, message = FALSE, warning = FALSE}
+ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DAMAGE_MILLIONS_DOLLARS),
+                      color = EQ_PRIMARY)) +
+  geom_jitter() +
+  scale_color_gradientn(colors=rainbow(4)) +
+  scale_x_continuous(limits = c(0, 100))
+```
+
+### Total Damage VS Total Deaths
+```{r, message = FALSE, warning = FALSE}
+ggplot(country_eq,aes(x=log(TOTAL_DAMAGE_MILLIONS_DOLLARS),y=log(TOTAL_DEATHS))) + 
+  geom_point()
+```
+
+### Total deaths over the years
+```{r, message = FALSE, warning = FALSE}
+ggplot(country_eq, aes(x= format(DATE,"%Y"), y = log(TOTAL_DEATHS))) +
+  stat_summary(fun.y=sum,geom="bar") + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_discrete("Year")
+```
+  
+### Total deaths VS GDP per capita 
+```{r,message = FALSE, warning = FALSE}
 ggplot(df_eq_gdp,aes(x = as.numeric(GDP_per_capita_currentUSD),y=log(TOTAL_DEATHS))) +
   geom_jitter() +
   scale_x_continuous("GDP per capita current $US",limits = c(0,60000))
+```
 
+### Total deaths VS Country population 
+```{r,message = FALSE, warning = FALSE}
 ggplot(df_eq_gdp,aes(x = as.numeric(Population),y=log(TOTAL_DEATHS))) +
   geom_jitter() +
   scale_x_continuous("Country Population")
-
-ggplot(df_eq_gdp,aes(x=TOTAL_DEATHS)) +
-  geom_histogram(bins = 50,color="black",fill = "white")
-
+```
 
