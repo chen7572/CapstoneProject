@@ -1,0 +1,178 @@
+---
+title: "Are we doing better at reducing the total loss in large earthquakes?"
+author: "Chen Chen"
+date: "12/09/2017"
+output:
+  pdf_document: default
+  html_document: default
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##*\textcolor{blue}{Introduction}*
+
+Earthquakes, one of the most damaging natural disasters, take away hundreds to thousands of lives and houses worldwide each year. While it is difficult to predict when the next earthquake will hit, the earthquake prone areas can take actions to be more prepared if such disasters happen. Through this project, I want to analyze earthquakes for the past 50 years to investigate (1) the factors that contributed to high fatalities/damages in large earthquakes and (2) the correlation between large earthquake fatality/damages and a country's economic situation. The questions that I attempt to answer through this project are: 
+
+1) overall, are we doing better at reducing damages and fatality over the past 50 years; 
+
+2) are the total deaths/damages correlated with the magnitude/depth/location of the earthquakes?
+
+3) is there a correlation between a country's GDP/population and the total deaths/damages; 
+
+##*\textcolor{blue}{Explanation of the Dataset}*
+
+The dataset used in this study is downloaded from NOAA [significant earthquake database](https://www.ngdc.noaa.gov/nndc/struts/form?t=101650&s=1&d=1), which contains damaging earthquakes from 2150 B.C. to the present. Earthquakes between 1967 and 2017 were downloaded for this analysis. This dataset contains important information of the earthquake data, location, depth, magnitude, total deaths, and total damages. A country's economic status for the past 57 years, represented by [GDP](http://databank.worldbank.org/data/reports.aspx?source=2&series=NY.GDP.MKTP.CD&country=#) and [population](http://databank.worldbank.org/data/reports.aspx?source=2&series=SP.POP.TOTL&country=) were downloaded from the World Band database.   
+
+
+The difficulty of analyzing the dataset is how to handle the missing values. For instance, 1222 out of 2012 earthquakes do not have the total deaths count, and 1691 out of 2012 earthquakes do not list the total damage values. It is unclear if the empty field represents unavailable data or there were no damage or deaths in these earthquakes. However, considering that the downloaded earthquake data were from the past 50 years when global earthquake recording networks were in place and documentations of these earthquakes were relatively complete , it is very likely that these missing fields represent no deaths or damages.   
+ 
+ 
+One limitation of this dataset is the absence the local population density information at each earthquake location. While a country's population is an indication of how dense the population is, the distribution of population varies from cities to cities. In addition, large countries will have great values of population, but the earthquakes may occur along faults that are far away from the residential areas. Another limiation is the lack of information on building code/style at each earthquake location. One would image that areas with stronger buildings will have fewer deaths/damages. After all, earthquakes don't kill people, but buildings do. Because of the lack of information on the local population density and building code, we cannot quantify the correlation between these factors and the total deaths/damages. 
+
+##*\textcolor{blue}{Data Cleaning and Wrangling}*
+
+For the earthquake data, the date and time need to be converted from characters to date in R. The earthquake data was also re-ordered by countries and variables that were used in the analysis. 
+
+The GDP and population data were collapsed into Year-Value pairs, in order to be joined with with the earthquake data. There are ".." values in the GDP and population data, which were replaced with NA values. 
+
+##*\textcolor{blue}{Preliminary Results}*
+
+```{r, message=FALSE, warning = FALSE, echo=FALSE}
+
+library(Amelia)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Read in and tidy the earthquake data 
+eq <- read.table(file = 'results.tsv', sep = '\t', quote="\"",
+                      header = TRUE, stringsAsFactors = F)
+
+# visulaize the correlation of missing fields 
+empty_cell <- is.na(eq)
+cell_cor <- cor(empty_cell)
+#par( mar = c( 10, 10, 0.5, 0.5 ),cex = 0.5)
+#image(cell_cor, col = rev(heat.colors(12)), xaxt = "n", yaxt = "n")
+#axis( 1, at=seq(0,1,length.out=nrow( cell_cor ) ), 
+#      labels= rownames( cell_cor ), las= 2 )
+#axis( 2, at=seq(0,1,length.out=ncol( cell_cor ) ), 
+#      labels= colnames( cell_cor ), las= 2)
+
+# Plot the missing field data using missmap
+# missmap(eq,x.cex=0.5,y.cex=0.5,rank.order = F)
+
+# convert NA values in HOUR, MINUTE,SECOND to 0 
+# eq_data[c("HOUR","MINUTE","SECOND")][is.na(eq_data[c("HOUR","MINUTE","SECOND")])] <- 0 
+
+# Convert Date from character to date in R
+eq_date <- eq %>% unite(DATE,YEAR:DAY,sep="-",remove=T) 
+eq_date$DATE <- as.Date(eq_date$DATE)
+
+# Reorder the columns and arrange the data frame by country 
+country_eq <- eq_date %>% 
+  select(COUNTRY:LONGITUDE,FOCAL_DEPTH,REGION_CODE,DATE:SECOND,everything()) %>% 
+  arrange(COUNTRY)
+
+
+# Next let's import and tidy the world gdp data
+gdp <- read.csv(file='world_gdp_Data.csv',sep=",",
+                col.names=c("Series.Name","Series.Code",
+                "Country.Name","Country.Code",1960:2016),
+                stringsAsFactors = F,check.names = F)
+
+# Last 5 rows of gdp data table are explanation, and are excluded in the analysis
+world_gdp <- head(gdp,-5)
+gdp_tidy <- world_gdp %>% gather("Year","Value",5:61)
+gdp_order <- gdp_tidy %>% select(Country.Name,Country.Code,everything(),-Series.Code) %>% 
+  arrange(Country.Name)
+gdp_spread <- gdp_order %>% spread(key=Series.Name,value = Value)
+  
+# Last let's tidy the population data 
+popul <- read.csv(file="world_population_Data.csv",sep=",",
+                       col.names=c("Series.Name","Series.Code",
+                                   "Country.Name","Country.Code",1960:2016),
+                  stringsAsFactors = F,check.names = F)
+
+world_popu <- head(popul,-5)
+popu_tidy <- world_popu %>% gather("Year","Population",5:61)
+popu_order <- popu_tidy %>% arrange(Country.Name) %>% 
+  select(Country.Name,Country.Code,Year,everything(),-Series.Code,-Series.Name)
+
+# Add population in the gdp data table as a column.
+gdp_popu <- left_join(gdp_spread,popu_order)
+
+# Now the Fun Part: Perform data analysis 
+gdp_popu[gdp_popu == ".."] = NA
+
+```
+
+
+```{r, message = FALSE, warning = FALSE, echo=FALSE}
+ 
+colnames(gdp_popu)[1] <- "COUNTRY"
+gdp_popu$COUNTRY <- toupper(gdp_popu$COUNTRY)
+country_eq$Year <- format(country_eq$DATE,"%Y")
+df_eq_gdp <- left_join(country_eq,gdp_popu)
+
+colnames(df_eq_gdp)[48] <- "GDP_constant2010USD"
+colnames(df_eq_gdp)[49] <- "GDP_currentUSD"
+colnames(df_eq_gdp)[50] <- "GDP_percap_2010USD"
+colnames(df_eq_gdp)[51] <- "GDP_percap_currentUSD"
+```
+
+1. Plotting the total deaths in large earthquakes over the past 50 years reveals no decrease in the total deaths in large earthquakes. 
+
+```{r, message = FALSE, warning = FALSE, echo=FALSE}
+
+ggplot(country_eq, aes(x= format(DATE,"%Y"), y = log(TOTAL_DEATHS))) +
+  stat_summary(fun.y=sum,geom="bar") + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_discrete("Year")
+```
+
+\newpage
+2. Distribution of total deaths exhibits an exponentially decreasing distribution. Only a few earthquakes have caused significant deaths count, while majority of the earthquakes took away fewer lives.
+
+```{r, message=FALSE,warning=FALSE, echo = FALSE, fig.height = 3, fig.width = 4, fig.align='center'}
+ggplot(df_eq_gdp,aes(x=log1p(TOTAL_DEATHS))) +
+  geom_histogram(bins = 50,color="black",fill = "white")
+```
+
+
+3. There is a positive correlation of earthquake magnitude and the total death in an earthquake. As expected, more people died in large earthquakes.
+
+```{r, message = FALSE,warning = FALSE, echo = FALSE, fig.height = 3, fig.width = 4, fig.align='center'}
+ggplot(country_eq,aes(x=EQ_PRIMARY, y = log1p(TOTAL_DEATHS))) +
+  geom_point()
+```
+
+\newpage
+4. There is a weak correlation between focal depth and total deaths. More deaths are correlated with shallower earthquakes. There is usually no death in very deep earthquakes (> 300 km), except for one earthquake in Peru that occurred in 1970 had 1 death on record, and the 1994 M8.2 earthquake in Bolivia that killed 5 people. 
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, fig.height = 2.5, fig.width = 5, fig.align='center'}
+ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log1p(TOTAL_DEATHS),color = EQ_PRIMARY)) +
+  geom_jitter() +
+  scale_color_gradientn(colors=rainbow(4))
+#  scale_x_continuous(limits = c(0, 300))
+```
+
+
+5. There is no obvious correlation between focal depth and total damages. But it is interesting to see that only earthquakes shallow than 100 km depths have caused damages.  
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, fig.height = 2.5, fig.width = 5, fig.align='center'}
+ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DAMAGE_MILLIONS_DOLLARS),
+                      color = EQ_PRIMARY)) +
+  geom_jitter() +
+  scale_color_gradientn(colors=rainbow(4)) 
+#  scale_x_continuous(limits = c(0, 100))
+```  
+
+&nbsp;
+
+Based on these results, I want to perform regression analysis on the total deaths and variables of earthquakes to explore what factors have higher influence on the total deaths. Similarly, regression analysis on the total damages and variables of earthquakes will also be done. 
+
+The plots in the preliminary results also show weak correlation between earthquake depth/magnitude with the total death/damages, so the regression analysis may not achieve a good fit for the data. As suggested by my mentor, I also plan to run random forest algorithm to aggregate the results.  
+

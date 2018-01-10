@@ -1,0 +1,124 @@
+---
+title: "Machine Learning Exercise"
+author: "Chen Chen"
+output:
+  pdf_document: default
+  html_document: default
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For this exercise, I want to apply machine learning techniques on my dataset. I applied two types of machine learning algorithms and both are supervised algorithm. I first ran linear regression analysis on my dataset, because I want to explore if the predictor - total deaths/damages is a function of the earthquake variables - depth/magnitude/location(lat,lon)/intensity. 
+
+```{r, message=FALSE, warning = FALSE, echo=FALSE}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(randomForest)
+
+# Read in and tidy the earthquake data 
+eq <- read.table(file = 'results.tsv', sep = '\t', quote="\"",
+                      header = TRUE, stringsAsFactors = F)
+
+# Convert Date from character to date in R
+eq_date <- eq %>% unite(DATE,YEAR:DAY,sep="-",remove=T) 
+eq_date$DATE <- as.Date(eq_date$DATE)
+
+# Reorder the columns and arrange the data frame by country 
+country_eq <- eq_date %>% 
+  select(COUNTRY:LONGITUDE,FOCAL_DEPTH,REGION_CODE,DATE:SECOND,everything()) %>% 
+  arrange(COUNTRY)
+
+# Next let's import and tidy the world gdp data
+gdp <- read.csv(file='world_gdp_Data.csv',sep=",",
+                col.names=c("Series.Name","Series.Code",
+                "Country.Name","Country.Code",1960:2016),
+                stringsAsFactors = F,check.names = F)
+
+# Last 5 rows of gdp data table are explanation, and are excluded in the analysis
+world_gdp <- head(gdp,-5)
+gdp_tidy <- world_gdp %>% gather("Year","Value",5:61)
+gdp_order <- gdp_tidy %>% select(Country.Name,Country.Code,everything(),-Series.Code) %>% 
+  arrange(Country.Name)
+gdp_spread <- gdp_order %>% spread(key=Series.Name,value = Value)
+  
+# Last let's tidy the population data 
+popul <- read.csv(file="world_population_Data.csv",sep=",",
+                       col.names=c("Series.Name","Series.Code",
+                                   "Country.Name","Country.Code",1960:2016),
+                  stringsAsFactors = F,check.names = F)
+
+world_popu <- head(popul,-5)
+popu_tidy <- world_popu %>% gather("Year","Population",5:61)
+popu_order <- popu_tidy %>% arrange(Country.Name) %>% 
+  select(Country.Name,Country.Code,Year,everything(),-Series.Code,-Series.Name)
+
+# Add population in the gdp data table as a column.
+gdp_popu <- left_join(gdp_spread,popu_order)
+
+# Now the Fun Part: Perform data analysis 
+gdp_popu[gdp_popu == ".."] = NA
+
+# Combine the earthquake data and the GDP/Population Data
+colnames(gdp_popu)[1] <- "COUNTRY"
+gdp_popu$COUNTRY <- toupper(gdp_popu$COUNTRY)
+country_eq$Year <- format(country_eq$DATE,"%Y")
+df_eq_gdp <- left_join(country_eq,gdp_popu)
+
+colnames(df_eq_gdp)[48] <- "GDP_constant2010USD"
+colnames(df_eq_gdp)[49] <- "GDP_currentUSD"
+colnames(df_eq_gdp)[50] <- "GDP_percap_2010USD"
+colnames(df_eq_gdp)[51] <- "GDP_percap_currentUSD"
+
+# Regression Analysis
+df_eq_gdp$GDP_constant2010USD <- as.numeric(df_eq_gdp$GDP_constant2010USD)
+df_eq_gdp$GDP_currentUSD <- as.numeric(df_eq_gdp$GDP_currentUSD)
+df_eq_gdp$Population <- as.numeric(df_eq_gdp$Population)
+
+model1 <- lm(TOTAL_DEATHS ~ FOCAL_DEPTH + EQ_PRIMARY + INTENSITY + LATITUDE + LONGITUDE,
+           data = df_eq_gdp)
+```
+
+&nbsp;
+
+High residual and low R-squared value in the summary of this model suggests a bad fit. 
+```{r, message = FALSE, warning = FALSE}
+summary(model1)
+```
+
+&nbsp;
+
+I then included the economic status of a country represented by the GDP and the population in the regression analysis. Inspecting the summary of this model suggests a slight increase in performance of this model, but it was still not a good fit model. 
+
+```{r, message = FALSE, warning = FALSE}
+model2 <- lm(TOTAL_DEATHS ~ FOCAL_DEPTH + EQ_PRIMARY + INTENSITY + LATITUDE + LONGITUDE
+             + GDP_currentUSD + Population,data = df_eq_gdp)
+summary(model2)
+```
+
+&nbsp;
+
+The simple linear regression analysis did not seem to work well for this dataset. And it is time to try something different! My mentor suggested giving Random Forest algorithm a try. Random Forest performs regression analysis by constructing a multitude of decision trees at training time and outputting the mean result of the individual trees.
+
+```{r, message = FALSE, warning = FALSE, fig.height = 3.5, fig.width = 5.5, fig.align='center'}
+
+set.seed(130)
+fit <- randomForest(TOTAL_DEATHS ~ FOCAL_DEPTH + EQ_PRIMARY + INTENSITY + 
+                    LATITUDE + LONGITUDE + GDP_currentUSD + Population,
+                    data = df_eq_gdp,
+                    importance = TRUE,
+                    na.action = na.omit,
+                    ntree = 2000)
+varImpPlot(fit,type=1)
+fit
+
+```
+
+&nbsp;
+
+The variable importance plot suggests that population and earthquake magnitude are relatively more important than the other variables. But the large mean of squared residuals and the negative value for the % of variance explained by this model indicates that random forest algorithm was not adequate to define a model that relates the total deaths/damages to the earthquake variables. 
+

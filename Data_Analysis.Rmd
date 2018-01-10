@@ -19,13 +19,14 @@ library(Amelia)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-eq_data <- read.table(file = 'results.tsv', sep = '\t', 
+
+# Read in and tidy the earthquake data 
+eq <- read.table(file = 'results.tsv', sep = '\t', quote="\"",
                       header = TRUE, stringsAsFactors = F)
 
-empty_cell <- is.na(eq_data)
-cell_cor <- cor(empty_cell)
-
 # visulaize the correlation of missing fields 
+empty_cell <- is.na(eq)
+cell_cor <- cor(empty_cell)
 par( mar = c( 10, 10, 0.5, 0.5 ),cex = 0.5)
 image(cell_cor, col = rev(heat.colors(12)), xaxt = "n", yaxt = "n")
 axis( 1, at=seq(0,1,length.out=nrow( cell_cor ) ), 
@@ -34,120 +35,119 @@ axis( 2, at=seq(0,1,length.out=ncol( cell_cor ) ),
       labels= colnames( cell_cor ), las= 2)
 
 # Plot the missing field data using missmap
-#missmap(eq_data,x.cex=0.5,y.cex=0.5,rank.order = F)
+# missmap(eq,x.cex=0.5,y.cex=0.5,rank.order = F)
 
 # convert NA values in HOUR, MINUTE,SECOND to 0 
 # eq_data[c("HOUR","MINUTE","SECOND")][is.na(eq_data[c("HOUR","MINUTE","SECOND")])] <- 0 
 
 # Convert Date from character to date in R
-eq_date <- eq_data %>% unite(DATE,YEAR:DAY,sep="-",remove=T) 
-#eq_time <- eq_date %>% unite(E_TIME,HOUR:SECOND,sep=":",remove=T)
-#eq_origin <- eq_time %>% unite(ORIGIN,DATE:E_TIME,sep=" ",remove=T) 
-#eq_origin$ORIGIN <- as.POSIXct(eq_origin$ORIGIN,tz="GMT")
-eq_date$DATE <- as.POSIXct(eq_date$DATE)
+eq_date <- eq %>% unite(DATE,YEAR:DAY,sep="-",remove=T) 
+eq_date$DATE <- as.Date(eq_date$DATE)
 
-# reorder the columns and arrange the data frame by country 
+# Reorder the columns and arrange the data frame by country 
 country_eq <- eq_date %>% 
   select(COUNTRY:LONGITUDE,FOCAL_DEPTH,REGION_CODE,DATE:SECOND,everything()) %>% 
   arrange(COUNTRY)
 
 
-# tidy the world gdp data
-world_gdp <- read.csv(file='world_gdp_Data.csv',sep=",",
-                     col.names=c("Series.Name","Series.Code",
-                     "Country.Name","Country.Code",1960:2016),
-                     stringsAsFactors = F,check.names = F)
-                      
-#missmap(world_gdp,x.cex=0.5,y.cex=0.5,rank.order=F)
+# Next let's import and tidy the world gdp data
+gdp <- read.csv(file='world_gdp_Data.csv',sep=",",
+                col.names=c("Series.Name","Series.Code",
+                "Country.Name","Country.Code",1960:2016),
+                stringsAsFactors = F,check.names = F)
 
-world_gdp_data <- head(world_gdp,-5)
-gdp_tidy <- world_gdp_data %>% gather("Year","Value",5:61)
-
+# Last 5 rows of gdp data table are explanation, and are excluded in the analysis
+world_gdp <- head(gdp,-5)
+gdp_tidy <- world_gdp %>% gather("Year","Value",5:61)
 gdp_order <- gdp_tidy %>% select(Country.Name,Country.Code,everything(),-Series.Code) %>% 
   arrange(Country.Name)
-
-#gdp_spread <- gdp_order %>% unite(temp,Series.Name,Series.Code,sep="|") %>% 
-#  spread(key=temp,value = Value)
-
 gdp_spread <- gdp_order %>% spread(key=Series.Name,value = Value)
   
-# tidy the population data 
+# Last let's tidy the population data 
 popul <- read.csv(file="world_population_Data.csv",sep=",",
                        col.names=c("Series.Name","Series.Code",
                                    "Country.Name","Country.Code",1960:2016),
                   stringsAsFactors = F,check.names = F)
 
-#missmap(popul,x.cex=0.5,y.cex=0.5,rank.order=F)
 world_popu <- head(popul,-5)
 popu_tidy <- world_popu %>% gather("Year","Population",5:61)
 popu_order <- popu_tidy %>% arrange(Country.Name) %>% 
   select(Country.Name,Country.Code,Year,everything(),-Series.Code,-Series.Name)
 
-# Add in population as a column. 
-gdp_population <- left_join(gdp_spread,popu_order)
+# Add population in the gdp data table as a column.
+gdp_popu <- left_join(gdp_spread,popu_order)
+
+# Now the Fun Part: Perform data analysis 
+gdp_popu[gdp_popu == ".."] = NA
 
 ```
 
 
 ```{r, message = FALSE, warning = FALSE, echo=FALSE}
-# Perform data analysis 
+ 
 gdp_population[gdp_population == ".."] = NA
 
-# Need to make sure the names are consistent 
-colnames(gdp_population)[1] <- "COUNTRY"
-gdp_population$COUNTRY <- toupper(gdp_population$COUNTRY)
+colnames(gdp_popu)[1] <- "COUNTRY"
+gdp_popu$COUNTRY <- toupper(gdp_popu$COUNTRY)
 country_eq$Year <- format(country_eq$DATE,"%Y")
-df_eq_gdp <- left_join(country_eq,gdp_population)
+df_eq_gdp <- left_join(country_eq,gdp_popu)
 
 colnames(df_eq_gdp)[48] <- "GDP_constant2010USD"
 colnames(df_eq_gdp)[49] <- "GDP_currentUSD"
-colnames(df_eq_gdp)[50] <- "GDP_per_capita_2010USD"
-colnames(df_eq_gdp)[51] <- "GDP_per_capita_currentUSD"
+colnames(df_eq_gdp)[50] <- "GDP_percap_2010USD"
+colnames(df_eq_gdp)[51] <- "GDP_percap_currentUSD"
 ```
 
 
 \newpage
 
 ## Distrubtion of total deaths
+This is an exponentially decreasing distribution. The Sumatra earthquake in 2004 had the highest total death of 227899, and the M 7.6 earthquake in Pakistan in 2005 had the second hightest death toll of 76213. 
 
 ```{r, message=FALSE,warning=FALSE}
-ggplot(df_eq_gdp,aes(x=TOTAL_DEATHS)) +
+ggplot(df_eq_gdp,aes(x=log1p(TOTAL_DEATHS))) +
   geom_histogram(bins = 50,color="black",fill = "white")
 ```
-
 
 \newpage
 
 ## Total deaths VS Earthquake Magnitude 
-As expected, more people died in large earthquakes.
+There is a positive correlation of earthquake magnitude and the total death in an earthquake. As expected, more people died in large earthquakes.
 ```{r, message = FALSE,warning = FALSE}
-ggplot(country_eq,aes(x=EQ_PRIMARY, y = log(TOTAL_DEATHS))) +
+ggplot(country_eq,aes(x=EQ_PRIMARY, y = log1p(TOTAL_DEATHS))) +
   geom_point()
 ```
 
 \newpage
 
 ## Total deaths VS Focal Depth of earthquakes 
-There is a weak correlation between focal depth and total deaths. More deaths are correlated with shallower earthquakes. 
-```{r, message = FALSE, warning = FALSE}
-ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DEATHS),color = EQ_PRIMARY)) +
+There is a weak correlation between focal depth and total deaths. More deaths are correlated with shallower earthquakes. There is usually no death in very deep earthquakes (> 300 km), except for one earthquake in Peru that occurred in 1970 had 1 death on record. 
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
+ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log1p(TOTAL_DEATHS),color = EQ_PRIMARY)) +
   geom_jitter() +
   scale_color_gradientn(colors=rainbow(4)) +
   scale_x_continuous(limits = c(0, 300))
 ```
+It will be useful to compare this result with the distribution of earthquake focal depth, as shown below.  
 
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
+ggplot(df_eq_gdp,aes(x=FOCAL_DEPTH)) +
+  geom_histogram(bins = 50,color="black",fill = "white")
+```
+Because in this study we are investigating significant earthquakes, i.e. earthquakes that have caused damages, the distribution of earthquake focal depth is right skewed, with a few deep earthquakes that have had deaths.
 
 \newpage
 
 ## Total damage VS Focal Depth of earthquakes
-There is no obvious correlation between focal depth and total damages. 
+There is no obvious correlation between focal depth and total damages. But it is interesting to see that only earthquakes that are shallow than 100 km depths have caused damages.
 
-```{r, message = FALSE, warning = FALSE}
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
 ggplot(country_eq,aes(x=FOCAL_DEPTH, y = log(TOTAL_DAMAGE_MILLIONS_DOLLARS),
                       color = EQ_PRIMARY)) +
   geom_jitter() +
-  scale_color_gradientn(colors=rainbow(4)) +
-  scale_x_continuous(limits = c(0, 100))
+  scale_color_gradientn(colors=rainbow(4)) 
+#  scale_x_continuous(limits = c(0, 100))
 ```
 
 \newpage
@@ -162,7 +162,7 @@ ggplot(country_eq,aes(x=log(TOTAL_DAMAGE_MILLIONS_DOLLARS),y=log(TOTAL_DEATHS)))
 \newpage
 
 ## Total deaths over the years
-There is no decrease of total deaths in large earthquakes over the years. The earthquake data seems to be missing the 1980s data. 
+There is no decrease of total deaths in large earthquakes over the years. The earthquake data seems to be missing the 1980s data. Inspecting the data frame, and there seems to be a hole in the data. Inspecting the database revealed that the error occurred during the step of data import. Will need to fix this.  
 ```{r, message = FALSE, warning = FALSE}
 ggplot(country_eq, aes(x= format(DATE,"%Y"), y = log(TOTAL_DEATHS))) +
   stat_summary(fun.y=sum,geom="bar") + 
