@@ -141,6 +141,9 @@ df_eq_gdp[which.max(df_eq_gdp$TOTAL_DEATHS),]
 df_eq_gdp[which(df_eq_gdp$TOTAL_DEATHS == 76213) ,]
 df_eq_gdp[which(df_eq_gdp$FOCAL_DEPTH >= 200 & df_eq_gdp$FOCAL_DEPTH <= 300) ,]
 
+write.csv(country_eq, "country_eq.csv")
+write.csv(df_eq_gdp, "earthquake_GDP.csv")
+
 # Regression Analysis
 df_eq_gdp$GDP_constant2010USD <- as.numeric(df_eq_gdp$GDP_constant2010USD)
 df_eq_gdp$GDP_currentUSD <- as.numeric(df_eq_gdp$GDP_currentUSD)
